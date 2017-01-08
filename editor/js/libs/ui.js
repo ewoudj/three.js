@@ -1002,3 +1002,100 @@ UI.Modal.prototype.hide = function () {
 	return this;
 
 };
+
+UI.PointsList = function(pointsListValue){
+	var lastPointIdx = 0;
+	var pointsUI = [];
+	var self = this;
+	this.pointsUI = pointsUI;
+
+
+	this.dom = document.createElement( 'span' );
+	this.setDisplay( 'inline-block' );
+
+	var pointsList = new UI.Div();
+	this.add( pointsList );
+
+	for ( var i = 0; i < pointsListValue.length; i ++ ) {
+
+		var point = pointsListValue[ i ];
+		pointsList.add( createPointRow( point.x, point.y ) );
+
+	}
+
+	var addPointButton = new UI.Button( '+' ).onClick( function() {
+
+		if( pointsUI.length === 0 ){
+
+			pointsList.add( createPointRow( 0, 0 ) );
+
+		} else {
+
+			var point = pointsUI[ pointsUI.length - 1 ];
+
+			pointsList.add( createPointRow( point.x.getValue(), point.y.getValue() ) );
+
+		}
+
+		update();
+
+	} );
+	this.add( addPointButton );
+
+	function createPointRow( x, y ) {
+
+		var pointRow = new UI.Div();
+		var lbl = new UI.Text( lastPointIdx + 1 ).setWidth( '20px' );
+		var txtX = new UI.Number( x ).setRange( 0, Infinity ).setWidth( '40px' ).onChange( update );
+		var txtY = new UI.Number( y ).setWidth( '40px' ).onChange( update );
+		var idx = lastPointIdx;
+		var btn = new UI.Button( '-' ).onClick( function() {
+
+			deletePointRow( idx );
+
+		} );
+
+		pointsUI.push( { row: pointRow, lbl: lbl, x: txtX, y: txtY } );
+		lastPointIdx ++;
+		pointRow.add( lbl, txtX, txtY, btn );
+
+		return pointRow;
+
+	}
+
+	function deletePointRow( idx ) {
+
+		if ( ! pointsUI[ idx ] ) return;
+
+		pointsList.remove( pointsUI[ idx ].row );
+		pointsUI[ idx ] = null;
+
+		update();
+
+	}
+
+	function update(){
+		var changeEvent = document.createEvent( 'HTMLEvents' );
+		changeEvent.initEvent( 'change', true, true );
+		self.dom.dispatchEvent( changeEvent );
+	}
+
+	return this;
+}
+
+UI.PointsList.prototype = Object.create( UI.Element.prototype );
+UI.PointsList.prototype.constructor = UI.PointsList;
+
+UI.PointsList.prototype.getValue = function(){
+	var points = [];
+	var count = 0;
+	for ( var i = 0; i < this.pointsUI.length; i ++ ) {
+		var pointUI = this.pointsUI[ i ];
+		if ( pointUI ) {
+			points.push( new THREE.Vector2( pointUI.x.getValue(), pointUI.y.getValue() ) );
+			count ++;
+			pointUI.lbl.setValue( count );
+		}
+	}
+	return points;
+};

@@ -33160,9 +33160,28 @@
 
 						default:
 
-							console.warn( 'THREE.ObjectLoader: Unsupported geometry type "' + data.type + '"' );
+							if(THREE[data.type]){
+								function construct(constructor, args) {
+									function F() {
+										return constructor.apply(this, args);
+									}
+									F.prototype = constructor.prototype;
+									return new F();
+								}
+								var constructorArgs = [];
+								for(var s in data){
+									if(s && (s != "uuid" && s != "type")){
+										constructorArgs.push(data[s]);
+									}
+								};
+								geometry = new construct(THREE[data.type], constructorArgs);
+							}
+							if(!geometry){
+								console.warn( 'THREE.ObjectLoader: Unsupported geometry type "' + data.type + '"' );
+								continue;
+							}
 
-							continue;
+							
 
 					}
 

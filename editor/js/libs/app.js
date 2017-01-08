@@ -106,6 +106,28 @@ var APP = {
 
 			}
 
+			function capitalizeFirstLetter(string) {
+				return string.charAt(0).toUpperCase() + string.slice(1);
+			}
+
+			function createPluginEventWrapper(handler, scope){
+				return function(argumentsObject){
+					handler.apply(scope, argumentsObject);
+				}
+			}
+
+			if(activePlugins){
+				for(var pluginName in activePlugins){
+					var plugin = activePlugins[pluginName];
+					for ( var eventKey in events ) {
+						var handlerName = "onPlayer" + capitalizeFirstLetter(eventKey);
+						if(plugin[handlerName]){
+							events[ eventKey ].push( plugin[ handlerName ].bind( plugin ) );
+						}
+					}
+				}
+			}
+
 			dispatch( events.init, arguments );
 
 		};
@@ -185,7 +207,7 @@ var APP = {
 
 			try {
 
-				dispatch( events.update, { time: time, delta: time - prevTime } );
+				dispatch( events.update, { time: time, delta: time - prevTime, scene: scene } );
 
 			} catch ( e ) {
 

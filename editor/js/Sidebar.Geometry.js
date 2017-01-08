@@ -160,9 +160,15 @@ Sidebar.Geometry = function ( editor ) {
 
 			parameters.clear();
 
+			var editorType = editorTypes.find( t => t.geometryType == geometry.type);
+
 			if ( geometry.type === 'BufferGeometry' || geometry.type === 'Geometry' ) {
 
 				parameters.add( new Sidebar.Geometry.Modifiers( editor, object ) );
+
+			} else if(editorType) {
+
+				parameters.add( new Sidebar.Geometry.Properties( editor, object ) );
 
 			} else if ( Sidebar.Geometry[ geometry.type ] !== undefined ) {
 
