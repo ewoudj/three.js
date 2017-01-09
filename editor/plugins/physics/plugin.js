@@ -86,6 +86,10 @@ THREE.PhysicsBoxGeometry.prototype.getPhysicsBody = function(mesh){
         transform.setIdentity();
         var pos = mesh.position;
         transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
+        var quat = mesh.quaternion;
+        var q = new Ammo.btQuaternion();
+		q.setValue( quat.x, quat.y, quat.z, quat.w );
+		transform.setRotation( q );
         var motionState = new Ammo.btDefaultMotionState( transform );
         var rbInfo = new Ammo.btRigidBodyConstructionInfo( this.parameters.mass, motionState, shape, localInertia );
         var body = new Ammo.btRigidBody( rbInfo );
@@ -147,7 +151,7 @@ editorTypes.push({
     }
 });
 
-THREE.PhysicsPlaneGeometry = 	function ( width, height, depth, widthSegments, heightSegments, depthSegments, mass ) {
+THREE.PhysicsPlaneGeometry = 	function ( width, height, widthSegments, heightSegments, mass, friction ) {
 
     THREE.PlaneBufferGeometry.call( this, width, height, widthSegments, heightSegments);
 
@@ -157,10 +161,10 @@ THREE.PhysicsPlaneGeometry = 	function ( width, height, depth, widthSegments, he
     this.parameters = {
         width: width,
         height: height,
-        depth: depth,
         widthSegments: widthSegments,
         heightSegments: heightSegments,
-        mass: mass
+        mass: mass,
+        friction: friction
     };
 };
 
@@ -170,7 +174,7 @@ THREE.PhysicsPlaneGeometry.prototype.constructor = THREE.PlaneBufferGeometry;
 THREE.PhysicsPlaneGeometry.prototype.getPhysicsBody = function(mesh){
     if(!this.physicsBody){
         var margin = 0.05;
-        var shape = new Ammo.btBoxShape( new Ammo.btVector3( this.parameters.width * 0.5, this.parameters.height * 0.5, this.parameters.depth * 0.5 ) );
+        var shape = new Ammo.btBoxShape( new Ammo.btVector3( (this.parameters.width * mesh.scale.x) * 0.5, (this.parameters.height * mesh.scale.y) * 0.5, 0.01 ) );
         shape.setMargin( margin );
 
         var localInertia = new Ammo.btVector3( 0, 0, 0 );
@@ -180,6 +184,10 @@ THREE.PhysicsPlaneGeometry.prototype.getPhysicsBody = function(mesh){
         transform.setIdentity();
         var pos = mesh.position;
         transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
+        var quat = mesh.quaternion;
+        var q = new Ammo.btQuaternion();
+		q.setValue( quat.x, quat.y, quat.z, quat.w );
+		transform.setRotation( q );
         var motionState = new Ammo.btDefaultMotionState( transform );
         var rbInfo = new Ammo.btRigidBodyConstructionInfo( this.parameters.mass, motionState, shape, localInertia );
         var body = new Ammo.btRigidBody( rbInfo );
@@ -217,9 +225,13 @@ editorTypes.push({
         parameterName: 'mass',
         name: 'Mass',
         control: UI.Number
+    }, {
+        parameterName: 'friction',
+        name: 'Friction',
+        control: UI.Number
     }],
     create: function(){
-        var geometry = new THREE.PhysicsPlaneGeometry( 2, 2, 0, 0, 1 );
+        var geometry = new THREE.PhysicsPlaneGeometry( 2, 2, 0, 0, 0, 1 );
 		var mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
         return mesh;
     }
