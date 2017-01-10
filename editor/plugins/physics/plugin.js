@@ -174,6 +174,7 @@ THREE.PhysicsPlaneGeometry.prototype.constructor = THREE.PlaneBufferGeometry;
 THREE.PhysicsPlaneGeometry.prototype.getPhysicsBody = function(mesh){
     if(!this.physicsBody){
         var margin = 0.05;
+        
         var shape = new Ammo.btBoxShape( new Ammo.btVector3( (this.parameters.width * mesh.scale.x) * 0.5, (this.parameters.height * mesh.scale.y) * 0.5, 0.01 ) );
         shape.setMargin( margin );
 
@@ -201,7 +202,7 @@ editorTypes.push({
     name: 'Physics plane',
     group: 'Mesh',
     geometryType: 'PhysicsPlaneGeometry',
-        parameters: [{
+    parameters: [{
         parameterName: 'width',
         name: 'Width',
         control: UI.Number
@@ -236,3 +237,131 @@ editorTypes.push({
         return mesh;
     }
 });
+
+THREE.PhysicsSphereGeometry = 	function ( radius, widthSegments, heightSegments, phiStart, phiLength, thetaStart, thetaLength, mass, friction ) {
+
+    THREE.SphereBufferGeometry.call( this, radius, widthSegments, heightSegments, phiStart, phiLength, thetaStart, thetaLength);
+
+    this.type = 'PhysicsSphereGeometry';
+    this.isPhysicsType = true;
+
+    this.parameters = {
+        radius: radius,
+        widthSegments: widthSegments,
+        heightSegments: heightSegments,
+        phiStart: phiStart,
+        phiLength: phiLength,
+        thetaStart: thetaStart,
+        thetaLength: thetaLength,
+        mass: mass,
+        friction: friction
+    };
+};
+
+THREE.PhysicsSphereGeometry.prototype = Object.create( THREE.SphereBufferGeometry.prototype );
+THREE.PhysicsSphereGeometry.prototype.constructor = THREE.PhysicsSphereGeometry;
+
+THREE.PhysicsSphereGeometry.prototype.getPhysicsShape = function(mesh){
+    var shape = null;
+    if(mesh.scale.x == mesh.scale.y && mesh.scale.x == mesh.scale.z){
+        shape = new Ammo.btSphereShape( this.parameters.radius * mesh.scale.x );
+    }
+    else{
+        shape = new Ammo.btConvexHullShape();
+        var positions = mesh.geometry.attributes.position.array;
+        for(var i = 0; i < positions.length; i += 3)
+        {
+            var pt = new Ammo.btVector3(positions[i] * mesh.scale.x, positions[i+1] * mesh.scale.y, positions[i+2] * mesh.scale.z);
+            shape.addPoint(pt);
+        }
+    }
+    return shape;
+};
+
+THREE.PhysicsSphereGeometry.prototype.getPhysicsBody = function(mesh){
+    if(!this.physicsBody){
+        var margin = 0.05;
+        var shape = this.getPhysicsShape(mesh);
+        shape.setMargin( margin );
+
+        var localInertia = new Ammo.btVector3( 0, 0, 0 );
+        shape.calculateLocalInertia( this.parameters.mass, localInertia );
+
+        var transform = new Ammo.btTransform();
+        transform.setIdentity();
+        var pos = mesh.position;
+        transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
+        var quat = mesh.quaternion;
+        var q = new Ammo.btQuaternion();
+		q.setValue( quat.x, quat.y, quat.z, quat.w );
+		transform.setRotation( q );
+        var motionState = new Ammo.btDefaultMotionState( transform );
+        var rbInfo = new Ammo.btRigidBodyConstructionInfo( this.parameters.mass, motionState, shape, localInertia );
+        var body = new Ammo.btRigidBody( rbInfo );
+        body.setDamping(0, 0);
+        this.physicsBody = body;
+    }
+    return this.physicsBody;
+};
+
+editorTypes.push({
+    name: 'Physics sphere',
+    group: 'Mesh',
+    geometryType: 'PhysicsSphereGeometry',
+    parameters: [{
+        parameterName: 'radius',
+        name: 'Radius',
+        control: UI.Number
+    }, {
+        parameterName: 'widthSegments',
+        name: 'Width segments',
+        control: UI.Integer,
+        rangeStart: 1,
+        rangeEnd: Infinity
+    }, {
+        parameterName: 'heightSegments',
+        name: 'Height segments',
+        control: UI.Integer,
+        rangeStart: 1,
+        rangeEnd: Infinity
+    }, {
+        parameterName: 'phiStart',
+        name: 'Phi start',
+        control: UI.Number
+    }, {
+        parameterName: 'phiLength',
+        name: 'Phi length',
+        control: UI.Number
+    }, {
+        parameterName: 'thetaStart',
+        name: 'Theta start',
+        control: UI.Number
+    }, {
+        parameterName: 'thetaLength',
+        name: 'Theta length',
+        control: UI.Number
+    }, {
+        parameterName: 'mass',
+        name: 'Mass',
+        control: UI.Number
+    }, {
+        parameterName: 'friction',
+        name: 'Friction',
+        control: UI.Number
+    }],
+    create: function(){
+        var radius = 1;
+		var widthSegments = 32;
+		var heightSegments = 16;
+		var phiStart = 0;
+		var phiLength = Math.PI * 2;
+		var thetaStart = 0;
+		var thetaLength = Math.PI;
+        var geometry = new THREE.PhysicsSphereGeometry( radius, widthSegments, heightSegments, phiStart, phiLength, thetaStart, thetaLength, 1, 0.5 );
+		var mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+        return mesh;
+    }
+});
+
+
+
