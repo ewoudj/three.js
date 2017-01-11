@@ -169,7 +169,7 @@ THREE.PhysicsPlaneGeometry = 	function ( width, height, widthSegments, heightSeg
 };
 
 THREE.PhysicsPlaneGeometry.prototype = Object.create( THREE.BoxBufferGeometry.prototype );
-THREE.PhysicsPlaneGeometry.prototype.constructor = THREE.PlaneBufferGeometry;
+THREE.PhysicsPlaneGeometry.prototype.constructor = THREE.PhysicsPlaneGeometry;
 
 THREE.PhysicsPlaneGeometry.prototype.getPhysicsBody = function(mesh){
     if(!this.physicsBody){
@@ -278,6 +278,14 @@ THREE.PhysicsSphereGeometry.prototype.getPhysicsShape = function(mesh){
     return shape;
 };
 
+var bodyActivationState = {
+	ACTIVE: 1,
+	ISLAND_SLEEPING: 2,
+	WANTS_DEACTIVATION: 3,
+	DISABLE_DEACTIVATION: 4,
+	DISABLE_SIMULATION: 5
+};
+
 THREE.PhysicsSphereGeometry.prototype.getPhysicsBody = function(mesh){
     if(!this.physicsBody){
         var margin = 0.05;
@@ -298,7 +306,9 @@ THREE.PhysicsSphereGeometry.prototype.getPhysicsBody = function(mesh){
         var motionState = new Ammo.btDefaultMotionState( transform );
         var rbInfo = new Ammo.btRigidBodyConstructionInfo( this.parameters.mass, motionState, shape, localInertia );
         var body = new Ammo.btRigidBody( rbInfo );
-        body.setDamping(0, 0);
+        // body.forceActivationState(bodyActivationState.DISABLE_DEACTIVATION);
+        body.setDamping( 0, 0.03 );
+        body.setSleepingThresholds(0.01, 0.01);
         this.physicsBody = body;
     }
     return this.physicsBody;
@@ -358,6 +368,128 @@ editorTypes.push({
 		var thetaStart = 0;
 		var thetaLength = Math.PI;
         var geometry = new THREE.PhysicsSphereGeometry( radius, widthSegments, heightSegments, phiStart, phiLength, thetaStart, thetaLength, 1, 0.5 );
+		var mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+        return mesh;
+    }
+});
+
+THREE.PhysicsCylinderBufferGeometry = 	function ( radiusTop, radiusBottom, height, radiusSegments, heightSegments, openEnded, mass, friction ) {
+
+    THREE.CylinderBufferGeometry.call( this, radiusTop, radiusBottom, height, radiusSegments, heightSegments, openEnded );
+
+    this.type = 'PhysicsCylinderBufferGeometry';
+    this.isPhysicsType = true;
+
+    this.parameters = {
+        radiusTop: radiusTop,
+        radiusBottom: radiusBottom,
+        height: height,
+        radiusSegments: radiusSegments,
+        heightSegments: heightSegments,
+        openEnded: openEnded,
+        mass: mass,
+        friction: friction
+    };
+};
+
+THREE.PhysicsCylinderBufferGeometry.prototype = Object.create( THREE.CylinderBufferGeometry.prototype );
+THREE.PhysicsCylinderBufferGeometry.prototype.constructor = THREE.PhysicsCylinderBufferGeometry;
+
+THREE.PhysicsCylinderBufferGeometry.prototype.getPhysicsShape = function(mesh){
+    var shape = null;
+    if(mesh.scale.x == mesh.scale.y && mesh.scale.x == mesh.scale.z && this.parameters.radiusTop == this.parameters.radiusBottom){
+        shape = new Ammo.btCylinderShape( new Ammo.btVector3( this.parameters.radiusTop * mesh.scale.x, (this.parameters.height * mesh.scale.x ) * 0.5, this.parameters.radiusTop * mesh.scale.x ) ); 
+    }
+    else{
+        shape = new Ammo.btConvexHullShape();
+        var positions = mesh.geometry.attributes.position.array;
+        for(var i = 0; i < positions.length; i += 3)
+        {
+            var pt = new Ammo.btVector3(positions[i] * mesh.scale.x, positions[i+1] * mesh.scale.y, positions[i+2] * mesh.scale.z);
+            shape.addPoint(pt);
+        }
+    }
+    return shape;
+};
+
+THREE.PhysicsCylinderBufferGeometry.prototype.getPhysicsBody = function(mesh){
+    if(!this.physicsBody){
+        var margin = 0.05;
+        
+        var shape = this.getPhysicsShape(mesh); 
+        shape.setMargin( margin );
+
+        var localInertia = new Ammo.btVector3( 0, 0, 0 );
+        shape.calculateLocalInertia( this.parameters.mass, localInertia );
+
+        var transform = new Ammo.btTransform();
+        transform.setIdentity();
+        var pos = mesh.position;
+        transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
+        var quat = mesh.quaternion;
+        var q = new Ammo.btQuaternion();
+		q.setValue( quat.x, quat.y, quat.z, quat.w );
+		transform.setRotation( q );
+        var motionState = new Ammo.btDefaultMotionState( transform );
+        var rbInfo = new Ammo.btRigidBodyConstructionInfo( this.parameters.mass, motionState, shape, localInertia );
+        var body = new Ammo.btRigidBody( rbInfo );
+        // body.forceActivationState(bodyActivationState.DISABLE_DEACTIVATION);
+        body.setDamping( 0, 0.03 );
+        body.setSleepingThresholds(0.01, 0.01);
+        this.physicsBody = body;
+    }
+    return this.physicsBody;
+};
+
+editorTypes.push({
+    name: 'Physics cylinder',
+    group: 'Mesh',
+    geometryType: 'PhysicsCylinderBufferGeometry',
+    parameters: [{
+        parameterName: 'radiusTop',
+        name: 'Radius top',
+        control: UI.Number
+    }, {
+        parameterName: 'radiusBottom',
+        name: 'Radius bottom',
+        control: UI.Number
+    }, {
+        parameterName: 'height',
+        name: 'Height',
+        control: UI.Number
+    }, {
+        parameterName: 'radiusSegments',
+        name: 'Radial segments',
+        control: UI.Integer,
+        rangeStart: 1,
+        rangeEnd: Infinity
+    }, {
+        parameterName: 'heightSegments',
+        name: 'Height segments',
+        control: UI.Integer,
+        rangeStart: 1,
+        rangeEnd: Infinity
+    }, {
+        parameterName: 'openEnded',
+        name: 'Open ended',
+        control: UI.Checkbox
+    }, {
+        parameterName: 'mass',
+        name: 'Mass',
+        control: UI.Number
+    }, {
+        parameterName: 'friction',
+        name: 'Friction',
+        control: UI.Number
+    }],
+    create: function(){
+		var radiusTop = 1;
+		var radiusBottom = 1;
+		var height = 2;
+		var radiusSegments = 32;
+		var heightSegments = 1;
+		var openEnded = false;
+		var geometry = new THREE.PhysicsCylinderBufferGeometry( radiusTop, radiusBottom, height, radiusSegments, heightSegments, openEnded, 1, 0.2 );
 		var mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
         return mesh;
     }

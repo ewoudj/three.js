@@ -132,7 +132,7 @@ editorTypes.push({
         name: 'Height',
         control: UI.Number
     }, {
-        parameterName: 'radialSegments',
+        parameterName: 'radiusSegments',
         name: 'Radial segments',
         control: UI.Integer,
         rangeStart: 1,
