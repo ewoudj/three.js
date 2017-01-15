@@ -11001,6 +11001,14 @@
 			if ( this.receiveShadow === true ) object.receiveShadow = true;
 			if ( this.visible === false ) object.visible = false;
 
+			if ( this.parameters !== undefined ) {
+				var parameters = this.parameters;
+				object.parameters = [];
+				for ( var key in parameters ) {
+					if ( parameters[ key ] !== undefined ) object.parameters[ key ] = parameters[ key ];
+				}
+			}
+
 			object.matrix = this.matrix.toArray();
 
 			//
@@ -33545,8 +33553,27 @@
 						console.warn( 'THREE.ObjectLoader.parseObject() does not support SkinnedMesh type. Instantiates Object3D instead.' );
 
 					default:
-
-						object = new Object3D();
+						if(THREE && THREE[data.type]){
+							function construct(constructor, args) {
+								function F() {
+									return constructor.apply(this, args);
+								}
+								F.prototype = constructor.prototype;
+								return new F();
+							}
+							var constructorArgs = [];
+							if(data.parameters){
+								for(var s in data.parameters){
+									if(s){
+										constructorArgs.push(data.parameters[s]);
+									}
+								};
+							}
+							object = new construct(THREE[data.type], constructorArgs);
+						}
+						else{
+							object = new Object3D();
+						}
 
 				}
 

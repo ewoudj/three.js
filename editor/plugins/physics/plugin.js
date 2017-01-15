@@ -27,6 +27,10 @@ availablePlugins.Physics.prototype.onPlayerUpdate = function( updateArgs ){
             this.physicsWorld.addRigidBody(geometry.getPhysicsBody(mesh));
             this.geometriesInWorld[geometry.uuid] = geometry; 
         } 
+        if( mesh && !this.geometriesInWorld[mesh.uuid] && mesh.addToWorld ){
+            mesh.addToWorld( this.physicsWorld );
+            this.geometriesInWorld[mesh.uuid] = mesh; 
+        }
     }, this);
     this.physicsWorld.stepSimulation( updateArgs.delta, 10 );
     meshes.forEach( function( mesh ) { 
@@ -42,6 +46,9 @@ availablePlugins.Physics.prototype.onPlayerUpdate = function( updateArgs ){
                 mesh.position.set( p.x(), p.y(), p.z() );
                 mesh.quaternion.set( q.x(), q.y(), q.z(), q.w() );
             }
+        }
+        if( mesh && mesh.updateWorld ) {
+            mesh.updateWorld( updateArgs.delta );
         }
     }, this);
 };
